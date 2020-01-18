@@ -5,12 +5,17 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.RectF;
 import android.os.Build;
+import android.text.Layout.Alignment;
+import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.SparseIntArray;
 import android.util.TypedValue;
 import android.widget.EditText;
+import android.widget.TextView;
+
+import androidx.annotation.RequiresApi;
 
 public class CustomEditText extends EditText {
     public CustomEditText(Context context) {
@@ -28,8 +33,24 @@ public class CustomEditText extends EditText {
         initialize();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    public CustomEditText(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        initialize();
+    }
+
     private interface SizeTester {
-        int onTestSize(int suggestedSize, RectF availableSpace);
+        /**
+         *
+         * @param suggestedSize
+         *            Size of text to be tested
+         * @param availableSpace
+         *            available space in which text must fit
+         * @return an integer < 0 if after applying {@code suggestedSize} to
+         *         text, it takes less space than {@code availableSpace}, > 0
+         *         otherwise
+         */
+        public int onTestSize(int suggestedSize, RectF availableSpace);
     }
 
     private RectF mTextRect = new RectF();
@@ -62,6 +83,7 @@ public class CustomEditText extends EditText {
         mAvailableSpaceRect = new RectF();
         mTextCachedSizes = new SparseIntArray();
         if (mMaxLines == 0) {
+            // no value was assigned during construction
             mMaxLines = NO_LINE_LIMIT;
         }
     }
@@ -70,6 +92,35 @@ public class CustomEditText extends EditText {
     public void setTextSize(float size) {
         mMaxTextSize = size;
         mTextCachedSizes.clear();
+        adjustTextSize(getText().toString());
+    }
+
+    @Override
+    public void setMaxLines(int maxlines) {
+        super.setMaxLines(maxlines);
+        mMaxLines = maxlines;
+        adjustTextSize(getText().toString());
+    }
+
+    public int getMaxLines() {
+        return mMaxLines;
+    }
+
+    @Override
+    public void setSingleLine() {
+        super.setSingleLine();
+        mMaxLines = 1;
+        adjustTextSize(getText().toString());
+    }
+
+    @Override
+    public void setSingleLine(boolean singleLine) {
+        super.setSingleLine(singleLine);
+        if (singleLine) {
+            mMaxLines = 1;
+        } else {
+            mMaxLines = NO_LINE_LIMIT;
+        }
         adjustTextSize(getText().toString());
     }
 
@@ -92,6 +143,18 @@ public class CustomEditText extends EditText {
         mMaxTextSize = TypedValue.applyDimension(unit, size,
                 r.getDisplayMetrics());
         mTextCachedSizes.clear();
+        adjustTextSize(getText().toString());
+    }
+
+    @Override
+    public void setLineSpacing(float add, float mult) {
+        super.setLineSpacing(add, mult);
+        mSpacingMult = mult;
+        mSpacingAdd = add;
+    }
+
+    public void setMinTextSize(float minTextSize) {
+        mMinTextSize = minTextSize;
         adjustTextSize(getText().toString());
     }
 
@@ -155,7 +218,6 @@ public class CustomEditText extends EditText {
         }
         size = binarySearch(s,start, end, sizeTester, availableSpace);
         mTextCachedSizes.put(key, size);
-
         return size;
     }
 

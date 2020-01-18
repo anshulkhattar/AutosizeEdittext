@@ -18,5 +18,6 @@
         android:text="TYPE SOMETHING"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
-        android:textSize="80sp" />
+        android:textSize="80sp"
+        android:background="@null"/>
 </RelativeLayout>
